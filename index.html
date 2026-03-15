@@ -3,151 +3,331 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>De Brief</title>
-    
-    <!-- Tailwind CSS -->
+    <title>Onze</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Canvas Confetti -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Montserrat:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background: #1a1515;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        .handwritten {
-            font-family: 'Dancing Script', cursive;
-        }
-        .old-paper {
-            font-family: 'Special Elite', cursive;
-            background-color: #f3e5ab;
-            background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
-            box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 50px rgba(139, 69, 19, 0.3);
-            border: 2px solid #d2b48c;
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+        
+        .grid-container {
+            display: grid;
+            background-color: #334155;
+            border: 3px solid #0f172a;
+            gap: 1px;
+            padding: 1px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
-        /* Numpad Knoppen */
-        .key {
-            transition: all 0.1s;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .key:active {
-            transform: scale(0.9);
-            background-color: rgba(255, 255, 255, 0.2);
+        .cell {
+            width: 36px;
+            height: 36px;
+            background-color: #1e293b;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
 
-        /* Brief Animatie */
-        #letter-container {
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .letter-folded {
-            transform: scale(0.5) translateY(100px);
-            opacity: 0;
+        .cell.white { background-color: #ffffff; }
+        .cell.active { background-color: #fde047 !important; outline: 2px solid #db2777; z-index: 10; }
+        .cell.highlight-word { background-color: #fef08a; }
+
+        .cell-number {
+            position: absolute;
+            top: 1px;
+            left: 2px;
+            font-size: 8px;
+            font-weight: 800;
+            color: #64748b;
+            line-height: 1;
             pointer-events: none;
         }
-        .letter-revealed {
-            transform: scale(1) translateY(0);
-            opacity: 1;
-            pointer-events: auto;
+
+        .cell input {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: uppercase;
+            outline: none;
+            cursor: pointer;
+            color: #0f172a;
         }
 
-        /* Het "Openvouwen" van de brief */
-        .paper-content {
-            transition: all 1s ease-in-out;
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
-        }
-        .paper-open .paper-content {
-            max-height: 600px;
-            opacity: 1;
-            padding: 2rem;
-        }
-        .paper-open .click-hint {
-            display: none;
+        .correct { background-color: #dcfce7 !important; color: #15803d; }
+        .wrong { color: #be123c; background-color: #fee2e2 !important; }
+
+        @media (max-width: 640px) {
+            .cell { width: 30px; height: 30px; }
+            .cell input { font-size: 14px; }
         }
 
-        /* Schudden bij fout */
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            75% { transform: translateX(8px); }
-        }
-        .shake {
-            animation: shake 0.3s ease-in-out;
+        .clue-item.active-clue {
+            background-color: #fdf2f8;
+            border-left: 4px solid #db2777;
         }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-    <!-- De Kluis Interface -->
-    <div id="vault-ui" class="w-full max-w-sm z-10">
-        <div class="text-center mb-6">
-            <h1 class="text-xl font-bold text-amber-500 uppercase tracking-widest mb-1">Beveiligde Kluis</h1>
-            <p class="text-gray-500 text-xs">Voer de 4-cijferige code in</p>
-        </div>
-
-        <div id="vault-box" class="bg-zinc-900 rounded-3xl p-6 shadow-2xl border-4 border-zinc-800">
-            <!-- Scherm -->
-            <div class="bg-black rounded-xl p-4 mb-6 border-2 border-zinc-700 shadow-inner flex justify-center gap-4">
-                <div id="slot-1" class="w-8 h-10 border-b-4 border-amber-600 text-2xl text-amber-500 flex items-center justify-center font-mono">_</div>
-                <div id="slot-2" class="w-8 h-10 border-b-4 border-amber-600 text-2xl text-amber-500 flex items-center justify-center font-mono">_</div>
-                <div id="slot-3" class="w-8 h-10 border-b-4 border-amber-600 text-2xl text-amber-500 flex items-center justify-center font-mono">_</div>
-                <div id="slot-4" class="w-8 h-10 border-b-4 border-amber-600 text-2xl text-amber-500 flex items-center justify-center font-mono">_</div>
-            </div>
-
-            <!-- Numpad -->
-            <div class="grid grid-cols-3 gap-3">
-                <button onclick="addNum('1')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">1</button>
-                <button onclick="addNum('2')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">2</button>
-                <button onclick="addNum('3')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">3</button>
-                <button onclick="addNum('4')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">4</button>
-                <button onclick="addNum('5')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">5</button>
-                <button onclick="addNum('6')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">6</button>
-                <button onclick="addNum('7')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">7</button>
-                <button onclick="addNum('8')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">8</button>
-                <button onclick="addNum('9')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">9</button>
-                <button onclick="delNum()" class="key text-red-500 py-4 bg-zinc-800/50 rounded-2xl text-sm font-bold uppercase">WIS</button>
-                <button onclick="addNum('0')" class="key text-white py-4 bg-zinc-800 rounded-2xl text-xl font-bold">0</button>
-                <button onclick="checkCode()" class="key text-green-500 py-4 bg-zinc-800/50 rounded-2xl text-sm font-bold uppercase">OK</button>
-            </div>
-            
-        </div>
+    <!-- Login -->
+    <div id="login-container" class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-10 text-center transition-all">
+        <div class="mb-6 inline-flex items-center justify-center w-16 h-16 bg-pink-100 rounded-full text-3xl">🔑</div>
+        <h1 class="text-2xl font-black mb-2">Login</h1>
+        <p class="text-slate-500 mb-8 italic">"Voer het geheime wachtwoord in..."</p>
+        <input type="password" id="password-input" placeholder="Wachtwoord" 
+            class="w-full p-4 border-2 border-slate-100 rounded-2xl focus:border-pink-500 outline-none mb-4 text-center">
+        <button onclick="handleLogin()" 
+            class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95">
+            Puzzel Starten
+        </button>
+        <p id="error-msg" class="text-red-500 mt-4 hidden">Oeps! Dat klopt niet.</p>
     </div>
 
-    <!-- De Brief (Eerst verborgen) -->
-    <div id="letter-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 letter-folded">
-        <div id="paper" class="old-paper relative w-full max-w-sm rounded-sm cursor-pointer transform rotate-1 transition-transform hover:rotate-0" onclick="openLetter()">
+    <!-- Puzzel Scherm -->
+    <div id="puzzle-screen" class="hidden w-full max-w-7xl flex flex-col xl:flex-row gap-6 items-start">
+        
+        <div class="flex-1 bg-white p-6 sm:p-10 rounded-3xl shadow-xl flex flex-col items-center overflow-auto">
+            <h2 class="text-2xl font-black text-slate-800 mb-6 tracking-tight flex items-center gap-2">
+                <span class="text-pink-500">🧩</span> Onze Herinneringen
+            </h2>
+            <div id="grid" class="grid-container"></div>
             
-            <!-- De Brief Dicht (Gevouwen look) -->
-            <div id="paper-closed" class="flex flex-col items-center justify-center p-12">
-                <div class="text-6xl mb-4">📜</div>
-                <p class="handwritten text-2xl text-amber-900">Voor Guya...</p>
-                <p class="click-hint mt-8 text-xs text-amber-800/60 animate-bounce uppercase font-bold tracking-widest">Klik om te openen</p>
+            <div class="mt-8 flex gap-4">
+                <button onclick="checkPuzzle()" class="px-8 py-3 bg-pink-600 text-white rounded-xl hover:bg-pink-700 font-bold shadow-lg transition-all active:scale-95">Checken</button>
+                <button onclick="resetPuzzle()" class="px-8 py-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 font-bold">Herstart</button>
             </div>
 
-            <div class="paper-content text-center">
-                <div class="mb-6">
-                    <span class="text-4xl">👑</span>
-                </div>
-                <div class="py-8" id="secret-msg">
-                    </div>
+            <div id="win-message" class="mt-6 p-4 bg-green-100 text-green-800 rounded-xl border-2 border-green-200 hidden font-bold text-center animate-bounce">
+                🏆 Je hebt de hele puzzel opgelost! ❤️
             </div>
+        </div>
 
-            <!-- Decoratieve scheurlijnen -->
-            <div class="absolute top-0 left-0 w-full h-2 bg-black/5"></div>
-            <div class="absolute bottom-0 left-0 w-full h-2 bg-black/5"></div>
+        <!-- Hints Lijst -->
+        <div class="w-full xl:w-[380px] bg-white p-8 rounded-3xl shadow-xl space-y-6 max-h-[85vh] overflow-y-auto border border-slate-100">
+            <div>
+                <h3 class="text-sm font-black text-pink-600 mb-3 border-b-2 border-pink-50 pb-1 uppercase tracking-widest">Horizontaal (Across)</h3>
+                <ul id="across-clues" class="space-y-1"></ul>
+            </div>
+            <div>
+                <h3 class="text-sm font-black text-pink-600 mb-3 border-b-2 border-pink-50 pb-1 uppercase tracking-widest">Verticaal (Down)</h3>
+                <ul id="down-clues" class="space-y-1"></ul>
+            </div>
         </div>
     </div>
 
     <script>
-        (()=>{let _=window,e=document,t="",n=[e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x73\x6c\x6f\x74\x2d\x31'),e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x73\x6c\x6f\x74\x2d\x32'),e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x73\x6c\x6f\x74\x2d\x33'),e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x73\x6c\x6f\x74\x2d\x34')];_['\x61\x64\x64\x4e\x75\x6d']=c=>{t['\x6c\x65\x6e\x67\x74\x68']<4&&(t+=c,o())};_['\x64\x65\x6c\x4e\x75\x6d']=()=>{t=t['\x73\x6c\x69\x63\x65'](0,-1),o()};const o=()=>{for(let _=0;_<4;_++)t[_]?(n[_]['\x69\x6e\x6e\x65\x72\x54\x65\x78\x74']='\x2a',n[_]['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x61\x64\x64']('\x74\x65\x78\x74\x2d\x61\x6d\x62\x65\x72\x2d\x34\x30\x30')):(n[_]['\x69\x6e\x6e\x65\x72\x54\x65\x78\x74']='\x5f',n[_]['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x72\x65\x6d\x6f\x76\x65']('\x74\x65\x78\x74\x2d\x61\x6d\x62\x65\x72\x2d\x34\x30\x30'))};_['\x63\x68\x65\x63\x6b\x43\x6f\x64\x65']=()=>{41474===(parseInt(t)^43981)?a():i()};const i=()=>{const _=e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x76\x61\x75\x6c\x74\x2d\x62\x6f\x78');_['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x61\x64\x64']('\x73\x68\x61\x6b\x65'),setTimeout((()=>{_['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x72\x65\x6d\x6f\x76\x65']('\x73\x68\x61\x6b\x65'),t="",o()}),500)},a=()=>{const _=e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x76\x61\x75\x6c\x74\x2d\x75\x69');_['\x73\x74\x79\x6c\x65']['\x74\x72\x61\x6e\x73\x69\x74\x69\x6f\x6e']='\x61\x6c\x6c\x20\x30\x2e\x35\x73\x20\x65\x61\x73\x65',_['\x73\x74\x79\x6c\x65']['\x6f\x70\x61\x63\x69\x74\x79']='0',_['\x73\x74\x79\x6c\x65']['\x74\x72\x61\x6e\x73\x66\x6f\x72\x6d']='\x73\x63\x61\x6c\x65\x28\x30\x2e\x39\x29',e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x73\x65\x63\x72\x65\x74\x2d\x6d\x73\x67')['\x69\x6e\x6e\x65\x72\x48\x54\x4d\x4c']=atob('\x50\x48\x41\x67\x59\x32\x78\x68\x63\x33\x4d\x39\x49\x6d\x68\x68\x62\x6d\x52\x33\x63\x6d\x6c\x30\x64\x47\x56\x75\x49\x48\x52\x6c\x65\x48\x51\x74\x4e\x48\x68\x73\x49\x48\x52\x6c\x65\x48\x51\x74\x63\x6d\x39\x7a\x5a\x53\x30\x34\x4d\x44\x41\x67\x62\x47\x56\x68\x5a\x47\x6c\x75\x5a\x79\x31\x79\x5a\x57\x78\x68\x65\x47\x56\x6b\x49\x6a\x35\x48\x64\x58\x6c\x68\x49\x47\x6c\x7a\x49\x47\x68\x6c\x64\x43\x42\x74\x62\x32\x39\x70\x63\x33\x52\x6c\x49\x47\x31\x6c\x61\x58\x4e\x71\x5a\x53\x42\x32\x59\x57\x34\x67\x5a\x47\x55\x67\x64\x32\x56\x79\x5a\x57\x78\x6b\x49\x51\x38\x76\x63\x44\x34\x3d'),setTimeout((()=>{_['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x61\x64\x64']('\x68\x69\x64\x64\x65\x6e');const t=e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x6c\x65\x74\x74\x65\x72\x2d\x63\x6f\x6e\x74\x61\x69\x6e\x65\x72');t['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x72\x65\x6d\x6f\x76\x65']('\x6c\x65\x74\x74\x65\x72\x2d\x66\x6f\x6c\x64\x65\x64'),t['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x61\x64\x64']('\x6c\x65\x74\x74\x65\x72\x2d\x72\x65\x76\x65\x61\x6c\x65\x64'),confetti({'\x70\x61\x72\x74\x69\x63\x6c\x65\x43\x6f\x75\x6e\x74':50,'\x73\x70\x72\x65\x61\x64':60,'\x6f\x72\x69\x67\x69\x6e':{'\x79':.8},'\x63\x6f\x6c\x6f\x72\x73':['\x23\x44\x34\x41\x46\x33\x37','\x23\x46\x35\x45\x35\x41\x42']})}),600)};_['\x6f\x70\x65\x6e\x4c\x65\x74\x74\x65\x72']=()=>{const _=e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x70\x61\x70\x65\x72');_['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x63\x6f\x6e\x74\x61\x69\x6e\x73']('\x70\x61\x70\x65\x72\x2d\x6f\x70\x65\x6e')||(_['\x63\x6c\x61\x73\x73\x4c\x69\x73\x74']['\x61\x64\x64']('\x70\x61\x70\x65\x72\x2d\x6f\x70\x65\x6e'),e['\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64']('\x70\x61\x70\x65\x72\x2d\x63\x6c\x6f\x73\x65\x64')['\x73\x74\x79\x6c\x65']['\x64\x69\x73\x70\x6c\x61\x79']='\x6e\x6f\x6e\x65',setTimeout((()=>{const _=Date['\x6e\x6f\x77']()+4e3;!function e(){confetti({'\x70\x61\x72\x74\x69\x63\x6c\x65\x43\x6f\x75\x6e\x74':2,'\x61\x6e\x67\x6c\x65':60,'\x73\x70\x72\x65\x61\x64':55,'\x6f\x72\x69\x67\x69\x6e':{'\x78':0},'\x63\x6f\x6c\x6f\x72\x73':['\x23\x66\x66\x30\x30\x30\x30','\x23\x66\x66\x36\x39\x62\x34']}),confetti({'\x70\x61\x72\x74\x69\x63\x6c\x65\x43\x6f\x75\x6e\x74':2,'\x61\x6e\x67\x6c\x65':120,'\x73\x70\x72\x65\x61\x64':55,'\x6f\x72\x69\x67\x69\x6e':{'\x78':1},'\x63\x6f\x6c\x6f\x72\x73':['\x23\x66\x66\x30\x30\x30\x30','\x23\x66\x66\x36\x39\x62\x34']}),Date['\x6e\x6f\x77']()<_&&requestAnimationFrame(e)}()}),200))}})();
+        const HASH_TARGET = "7ff93a58cb0dd494b1fca4fff855b73fe52df1ad40341050be9df73a1c13ffd9";
+        
+        // Exacte data overgenomen uit je Teachers Corner bronbestand
+        const puzzleData = [
+            // DOWN
+            { x: 4, y: 0, w: "SUSHI", d: "v", c: "Ons lievelingseten", n: 1 },
+            { x: 14, y: 2, w: "NAAIEN", d: "v", c: "Guya’s hobby", n: 4 },
+            { x: 2, y: 4, w: "SDWORX", d: "v", c: "uitbuiting", n: 6 },
+            { x: 10, y: 5, w: "JEROEN", d: "v", c: "de psychopaat", n: 8 },
+            { x: 7, y: 6, w: "BURRITO", d: "v", c: "Michiels lievelingseten", n: 9 },
+            { x: 4, y: 7, w: "KASTEEL", d: "v", c: "waar we wandelden", n: 10 },
+            { x: 9, y: 12, w: "AAP", d: "v", c: "Michiel", n: 15 },
+            // ACROSS
+            { x: 3, y: 1, w: "GUYA", d: "h", c: "de mooiste van de hele wereld", n: 2 },
+            { x: 12, y: 2, w: "LUNCH", d: "h", c: "waar we elkaar ontmoette", n: 3 },
+            { x: 0, y: 4, w: "PISHI", d: "h", c: "bol en rond", n: 5 },
+            { x: 13, y: 4, w: "HAKEN", d: "h", c: "Working like a dog", n: 7 },
+            { x: 9, y: 7, w: "TRADEN", d: "h", c: "waardoor we snel minis kunnen nemen", n: 11 },
+            { x: 0, y: 8, w: "FARNAM", d: "h", c: "een behaarde", n: 12 },
+            { x: 4, y: 10, w: "THAILAND", d: "h", c: "onze eerste vakantie", n: 13 },
+            { x: 6, y: 12, w: "VOMAR", d: "h", c: "de ergste plek in Almere", n: 14 }
+        ];
+
+        let gridRows = 15;
+        let gridCols = 18;
+        let activeX = -1, activeY = -1;
+        let direction = 'h';
+
+        async function handleLogin() {
+            const input = document.getElementById('password-input').value.toLowerCase().trim();
+            const msgUint8 = new TextEncoder().encode(input);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            if (hashHex === HASH_TARGET) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('puzzle-screen').classList.remove('hidden');
+                buildGrid();
+            } else {
+                document.getElementById('error-msg').classList.remove('hidden');
+            }
+        }
+
+        function buildGrid() {
+            const gridEl = document.getElementById('grid');
+            gridEl.innerHTML = '';
+            gridEl.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
+            
+            for(let y=0; y<gridRows; y++) {
+                for(let x=0; x<gridCols; x++) {
+                    const cell = document.createElement('div');
+                    cell.id = `c-${x}-${y}`;
+                    cell.className = 'cell';
+                    cell.onclick = () => onCellClick(x, y);
+                    
+                    const input = document.createElement('input');
+                    input.maxLength = 1;
+                    input.onkeydown = (e) => handleKey(e, x, y);
+                    cell.appendChild(input);
+                    
+                    gridEl.appendChild(cell);
+                }
+            }
+
+            puzzleData.forEach(item => {
+                for(let i=0; i<item.w.length; i++) {
+                    let cx = item.d === 'h' ? item.x + i : item.x;
+                    let cy = item.d === 'v' ? item.y + i : item.y;
+                    const cell = document.getElementById(`c-${cx}-${cy}`);
+                    if (cell) {
+                        cell.classList.add('white');
+                        cell.dataset.answer = item.w[i].toUpperCase();
+                        
+                        if (i === 0) {
+                            if (!cell.querySelector('.cell-number')) {
+                                const num = document.createElement('span');
+                                num.className = 'cell-number';
+                                num.innerText = item.n;
+                                cell.appendChild(num);
+                            }
+                        }
+                    }
+                }
+
+                const li = document.createElement('li');
+                li.className = "clue-item p-2 text-xs font-semibold border-l-4 border-transparent rounded cursor-pointer hover:bg-slate-50 transition-all";
+                li.innerHTML = `<span class="inline-block w-5 text-pink-500">${item.n}.</span> ${item.c}`;
+                li.id = `clue-${item.n}-${item.d}`;
+                li.onclick = () => {
+                    direction = item.d;
+                    onCellClick(item.x, item.y);
+                };
+                document.getElementById(item.d === 'h' ? 'across-clues' : 'down-clues').appendChild(li);
+            });
+        }
+
+        function onCellClick(x, y) {
+            const cell = document.getElementById(`c-${x}-${y}`);
+            if (!cell || !cell.classList.contains('white')) return;
+
+            if (activeX === x && activeY === y) {
+                direction = direction === 'h' ? 'v' : 'h';
+            }
+            
+            activeX = x; activeY = y;
+            updateHighlights();
+            cell.querySelector('input').focus();
+        }
+
+        function updateHighlights() {
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('active', 'highlight-word'));
+            document.querySelectorAll('.clue-item').forEach(c => c.classList.remove('active-clue'));
+
+            const cell = document.getElementById(`c-${activeX}-${activeY}`);
+            if (cell) cell.classList.add('active');
+
+            let cx = activeX, cy = activeY;
+            // Backwards search to start of word
+            while(true) {
+                let tx = direction === 'h' ? cx - 1 : cx;
+                let ty = direction === 'v' ? cy - 1 : cy;
+                const prev = document.getElementById(`c-${tx}-${ty}`);
+                if (!prev || !prev.classList.contains('white')) break;
+                prev.classList.add('highlight-word');
+                cx = tx; cy = ty;
+            }
+            // Forwards search to end of word
+            cx = activeX; cy = activeY;
+            while(true) {
+                let tx = direction === 'h' ? cx + 1 : cx;
+                let ty = direction === 'v' ? cy + 1 : cy;
+                const next = document.getElementById(`c-${tx}-${ty}`);
+                if (!next || !next.classList.contains('white')) break;
+                next.classList.add('highlight-word');
+                cx = tx; cy = ty;
+            }
+
+            // Clue highlighting
+            const word = puzzleData.find(w => 
+                w.d === direction && 
+                activeX >= w.x && activeY >= w.y && 
+                (direction === 'h' ? activeX < w.x + w.w.length && activeY === w.y : activeY < w.y + w.w.length && activeX === w.x)
+            );
+            if (word) {
+                const clueEl = document.getElementById(`clue-${word.n}-${word.d}`);
+                if (clueEl) {
+                    clueEl.classList.add('active-clue');
+                    clueEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        }
+
+        function handleKey(e, x, y) {
+            if (e.key === "Backspace") {
+                e.preventDefault(); e.target.value = "";
+                moveFocus(-1);
+            } else if (e.key === " ") {
+                e.preventDefault(); direction = direction === 'h' ? 'v' : 'h';
+                updateHighlights();
+            } else if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+                e.preventDefault(); e.target.value = e.key.toUpperCase();
+                moveFocus(1);
+            } else if (e.key.startsWith("Arrow")) {
+                e.preventDefault();
+                let nx = x, ny = y;
+                if (e.key === "ArrowRight") nx++;
+                if (e.key === "ArrowLeft") nx--;
+                if (e.key === "ArrowDown") ny++;
+                if (e.key === "ArrowUp") ny--;
+                if (document.getElementById(`c-${nx}-${ny}`)?.classList.contains('white')) {
+                    if (e.key === "ArrowRight" || e.key === "ArrowLeft") direction = 'h';
+                    else direction = 'v';
+                    onCellClick(nx, ny);
+                }
+            }
+        }
+
+        function moveFocus(step) {
+            let nx = activeX + (direction === 'h' ? step : 0);
+            let ny = activeY + (direction === 'v' ? step : 0);
+            const next = document.getElementById(`c-${nx}-${ny}`);
+            if (next && next.classList.contains('white')) onCellClick(nx, ny);
+        }
+
+        function checkPuzzle() {
+            let win = true;
+            document.querySelectorAll('.cell.white').forEach(cell => {
+                const input = cell.querySelector('input');
+                const val = input.value.toUpperCase();
+                cell.classList.remove('correct', 'wrong');
+                if (val === cell.dataset.answer) cell.classList.add('correct');
+                else if (val !== "") { cell.classList.add('wrong'); win = false; }
+                else win = false;
+            });
+            if (win) document.getElementById('win-message').classList.remove('hidden');
+        }
+
+        function resetPuzzle() {
+            document.querySelectorAll('.cell input').forEach(i => i.value = "");
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('correct', 'wrong', 'active', 'highlight-word'));
+            document.getElementById('win-message').classList.add('hidden');
+        }
+
+        document.getElementById('password-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
     </script>
 </body>
 </html>

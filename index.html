@@ -123,26 +123,34 @@
     <script>
         const HASH_TARGET = "7ff93a58cb0dd494b1fca4fff855b73fe52df1ad40341050be9df73a1c13ffd9";
         
-        // Exacte data overgenomen uit je Teachers Corner bronbestand
-        const puzzleData = [
-            // DOWN
-            { x: 4, y: 0, w: "SUSHI", d: "v", c: "Ons lievelingseten", n: 1 },
-            { x: 14, y: 2, w: "NAAIEN", d: "v", c: "Guya’s hobby", n: 4 },
-            { x: 2, y: 4, w: "SDWORX", d: "v", c: "uitbuiting", n: 6 },
-            { x: 10, y: 5, w: "JEROEN", d: "v", c: "de psychopaat", n: 8 },
-            { x: 7, y: 6, w: "BURRITO", d: "v", c: "Michiels lievelingseten", n: 9 },
-            { x: 4, y: 7, w: "KASTEEL", d: "v", c: "waar we wandelden", n: 10 },
-            { x: 9, y: 12, w: "AAP", d: "v", c: "Michiel", n: 15 },
-            // ACROSS
-            { x: 3, y: 1, w: "GUYA", d: "h", c: "de mooiste van de hele wereld", n: 2 },
-            { x: 12, y: 2, w: "LUNCH", d: "h", c: "waar we elkaar ontmoette", n: 3 },
-            { x: 0, y: 4, w: "PISHI", d: "h", c: "bol en rond", n: 5 },
-            { x: 13, y: 4, w: "HAKEN", d: "h", c: "Working like a dog", n: 7 },
-            { x: 9, y: 7, w: "TRADEN", d: "h", c: "waardoor we snel minis kunnen nemen", n: 11 },
-            { x: 0, y: 8, w: "FARNAM", d: "h", c: "een behaarde", n: 12 },
-            { x: 4, y: 10, w: "THAILAND", d: "h", c: "onze eerste vakantie", n: 13 },
-            { x: 6, y: 12, w: "VOMAR", d: "h", c: "de ergste plek in Almere", n: 14 }
+        // De data is nu Base64 geëncodeerd om "spieken" via de broncode te voorkomen.
+        const _geheimeData = [
+            [4, 0, "U1VTSEk=", "v", "T25zIGxpZXZlbGluZ3NldGVu", 1],
+            [14, 2, "TkFBSUVO", "v", "R3V5YSdzIGhvYmJ5", 4],
+            [2, 4, "U0RXT1JY", "v", "dWl0YnVpdGluZw==", 6],
+            [10, 5, "SkVST0VO", "v", "ZGUgcHN5Y2hvcGFhdA==", 8],
+            [7, 6, "QlVSUklUTw==", "v", "TWljaGllbHMgbGlldmVsaW5nc2V0ZW4=", 9],
+            [4, 7, "S0FTVEVFTA==", "v", "d2FhciB3ZSB3YW5kZWxkZW4=", 10],
+            [9, 12, "QUFQ", "v", "TWljaGllbA==", 15],
+            [3, 1, "R1VZQQ==", "h", "ZGUgbW9vaXN0ZSB2YW4gZGUgaGVsZSB3ZXJlbGQ=", 2],
+            [12, 2, "TFVOQ0g=", "h", "d2FhciB3ZSBlbGthYXIgb250bW9ldHRl", 3],
+            [0, 4, "UElTSEk=", "h", "Ym9sIGVuIHJvbmQ=", 5],
+            [13, 4, "SEFLRU4=", "h", "V29ya2luZyBsaWtlIGEgZG9n", 7],
+            [9, 7, "VFJBREVO", "h", "d2FhcmRvb3Igd2Ugc25lbCBtaW5pcyBrdW5uZW4gbmVtZW4=", 11],
+            [0, 8, "RkFSTkFN", "h", "ZWVuIGJlaGFhcmRl", 12],
+            [4, 10, "VEhBSUxBTkQ=", "h", "b256ZSBlZXJzdGUgdmFrYW50aWU=", 13],
+            [6, 12, "Vk9NQVI=", "h", "ZGUgZXJnc3RlIHBsZWsgaW4gQWxtZXJl", 14]
         ];
+
+        // Decodeer de array on-the-fly zodat de game normaal kan draaien
+        const puzzleData = _geheimeData.map(item => ({
+            x: item[0],
+            y: item[1],
+            w: atob(item[2]),
+            d: item[3],
+            c: atob(item[4]),
+            n: item[5]
+        }));
 
         let gridRows = 15;
         let gridCols = 18;
